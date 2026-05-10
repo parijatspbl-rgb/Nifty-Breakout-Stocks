@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#00ff88" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Breakout" />
+  <meta name="description" content="AI-powered Nifty 500 range breakout scanner" />
+  <title>Nifty Breakout Analyzer</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --green: #00ff88;
+      --green-dim: rgba(0,255,136,0.12);
+      --red: #ff4d6d;
+      --red-dim: rgba(255,77,109,0.12);
+      --amber: #ffb700;
+      --amber-dim: rgba(255,183,0,0.1);
+      --blue: #00b4ff;
+      --blue-dim: rgba(0,180,255,0.1);
+      --bg: #0a0a0f;
+      --bg2: #111118;
+      --bg3: #0d0d14;
+      --border: #1c1c2e;
+      --border2: #252538;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --dim: #333345;
+      --mono: 'Space Mono', monospace;
+      --display: 'Syne', sans-serif;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html { background: var(--bg); }
+
+    body {
+      font-family: var(--mono);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV BAR ── */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10,10,15,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: calc(var(--safe-top) + 12px) 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--green-dim);
+      border: 1px solid rgba(0,255,136,0.25);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-title {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 16px;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .nav-title span { color: var(--green); }
+
+    .nav-badge {
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      flex: 1;
+      min-width: 80px;
+      padding: 14px 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: none;
+      background: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      color: var(--green);
+      border-bottom-color: var(--green);
+    }
+
+    /* ── CONTENT ── */
+    .page { display: none; padding: 20px 16px; padding-bottom: calc(var(--safe-bottom) + 24px); }
+    .page.active { display: block; }
+
+    /* ── SCANNER PAGE ── */
+    .search-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .search-label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .stock-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1.5px solid var(--border2);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: var(--mono);
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+
+    .stock-input::placeholder { text-transform: none; letter-spacing: 0; color: var(--dim); font-size: 13px; }
+    .stock-input:focus { border-color: var(--green); }
+
+    .scan-btn {
+      background: var(--green);
+      color: var(--bg);
+      border: none;
+      border-radius: 10px;
+      padding: 14px 20px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .scan-btn:active { transform: scale(0.97); background: #00e676; }
+    .scan-btn:disabled { opacity: 0.45; }
+
+    /* Checklist pills */
+    .criteria-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    .pill-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+    /* ── LOADING ── */
+    .loading-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-stock {
+      font-family: var(--display);
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .loading-sub { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+
+    /* ── RESULT CARD ── */
+    .result-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      animation: slideUp 0.35s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .result-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .result-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .result-symbol {
+      font-family: var(--display);
+      font-size: 26px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .verdict {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .v-strong { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,255,136,0.25); }
+    .v-moderate { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,183,0,0.25); }
+    .v-weak { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,77,109,0.25); }
+    .v-none { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,77,109,0.25); }
+
+    .result-company { font-size: 12px; color: var(--muted); }
+
+    /* Score bar */
+    .score-bar-wrap { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    .score-label { font-size: 10px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; }
+    .score-track { height: 4px; background: var(--border2); border-radius: 4px; overflow: hidden; }
+    .score-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+
+    /* Metrics grid */
+    .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+    .metric { background: var(--bg2); padding: 16px; }
+    .metric-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
+    .metric-val { font-family: var(--display); font-size: 18px; font-weight: 700; color: #fff; line-height: 1.2; }
+    .metric-val.sm { font-size: 13px; }
+    .metric-sub { font-size: 10px; margin-top: 4px; letter-spacing: 0.5px; }
+    .pass { color: var(--green); }
+    .fail { color: var(--red); }
+    .neutral { color: var(--amber); }
+
+    /* Analysis */
+    .section { padding: 20px; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-title { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--dim); margin-bottom: 14px; }
+    .analysis-text { font-size: 13px; color: #8888a0; line-height: 1.85; }
+
+    /* Pre-entry checklist */
+    .checklist { display: flex; flex-direction: column; gap: 10px; }
+    .check-item { display: flex; gap: 12px; align-items: flex-start; }
+    .check-icon { width: 20px; height: 20px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; margin-top: 1px; }
+    .check-icon.ok { background: var(--green-dim); color: var(--green); }
+    .check-icon.warn { background: var(--amber-dim); color: var(--amber); }
+    .check-icon.bad { background: var(--red-dim); color: var(--red); }
+    .check-text { font-size: 12px; color: #8888a0; line-height: 1.6; }
+    .check-text strong { color: var(--text); display: block; font-size: 12px; margin-bottom: 2px; }
+
+    /* Trade levels */
+    .levels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .level-box { border-radius: 10px; padding: 14px; }
+    .level-box.entry { background: rgba(0,255,136,0.06); border: 1px solid rgba(0,255,136,0.15); }
+    .level-box.stop  { background: rgba(255,77,109,0.06); border: 1px solid rgba(255,77,109,0.15); }
+    .level-box.t1    { background: rgba(0,180,255,0.06); border: 1px solid rgba(0,180,255,0.15); }
+    .level-box.t2    { background: rgba(0,180,255,0.06); border: 1px solid rgba(0,180,255,0.15); }
+    .level-box.rr    { background: var(--bg); border: 1px solid var(--border2); }
+    .level-lbl { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+    .level-box.entry .level-lbl { color: var(--green); }
+    .level-box.stop  .level-lbl { color: var(--red); }
+    .level-box.t1    .level-lbl, .level-box.t2 .level-lbl { color: var(--blue); }
+    .level-box.rr    .level-lbl { color: var(--muted); }
+    .level-val { font-family: var(--display); font-size: 17px; font-weight: 700; color: #fff; }
+
+    /* Risk note */
+    .risk-box {
+      background: var(--amber-dim);
+      border: 1px solid rgba(255,183,0,0.2);
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 12px;
+      color: #9a9060;
+      line-height: 1.65;
+    }
+    .risk-box strong { color: var(--amber); display: block; margin-bottom: 4px; }
+
+    /* Watchlist */
+    .wl-empty { text-align: center; padding: 60px 20px; color: var(--dim); font-size: 13px; line-height: 2; }
+    .wl-item {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .wl-left { flex: 1; }
+    .wl-symbol { font-family: var(--display); font-size: 18px; font-weight: 800; color: #fff; }
+    .wl-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .wl-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+    .wl-delete { background: none; border: 1px solid var(--border2); border-radius: 8px; padding: 6px 10px; color: var(--muted); font-size: 14px; cursor: pointer; }
+    .wl-rescan { background: var(--green-dim); border: 1px solid rgba(0,255,136,0.2); border-radius: 8px; padding: 6px 12px; color: var(--green); font-size: 10px; font-family: var(--mono); letter-spacing: 0.5px; cursor: pointer; }
+
+    /* Guide page */
+    .guide-section { margin-bottom: 24px; }
+    .guide-section-title {
+      font-family: var(--display);
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .guide-item { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+    .guide-num {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: var(--green-dim); color: var(--green);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .guide-body { font-size: 13px; color: #8888a0; line-height: 1.7; }
+    .guide-body strong { color: var(--text); display: block; margin-bottom: 3px; }
+
+    .warning-box {
+      background: var(--red-dim);
+      border: 1px solid rgba(255,77,109,0.2);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 12px;
+      color: #9a6070;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .warning-box strong { color: var(--red); display: block; margin-bottom: 4px; }
+
+    .info-box {
+      background: var(--blue-dim);
+      border: 1px solid rgba(0,180,255,0.15);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 12px;
+      color: #607080;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .info-box strong { color: var(--blue); display: block; margin-bottom: 4px; }
+
+    /* History */
+    .history-item {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .history-item:active { border-color: var(--green); }
+    .h-left { display: flex; flex-direction: column; gap: 4px; }
+    .h-symbol { font-family: var(--display); font-size: 16px; font-weight: 700; color: #fff; }
+    .h-date { font-size: 10px; color: var(--dim); }
+    .h-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .h-rr { font-size: 12px; color: var(--muted); }
+
+    .clear-btn {
+      width: 100%;
+      background: none;
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      padding: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: calc(var(--safe-bottom) + 20px);
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--green);
+      color: var(--bg);
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      z-index: 1000;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .error-card {
+      background: var(--red-dim);
+      border: 1px solid rgba(255,77,109,0.2);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--red);
+      line-height: 1.6;
+    }
+
+    .page-title {
+      font-family: var(--display);
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .page-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+  <div class="nav-logo">
+    <div class="nav-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <polyline points="3,17 8,11 13,13.5 19,6 22,8" stroke="#00ff88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="19" cy="6" r="2" fill="#00ff88"/>
+      </svg>
+    </div>
+    <div>
+      <div class="nav-title">Nifty <span>Breakout</span></div>
+    </div>
+  </div>
+  <div class="nav-badge">Nifty 500</div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('scanner')">Scanner</button>
+  <button class="tab" onclick="switchTab('watchlist')">Watchlist</button>
+  <button class="tab" onclick="switchTab('history')">History</button>
+  <button class="tab" onclick="switchTab('guide')">Guide</button>
+</div>
+
+<!-- SCANNER PAGE -->
+<div class="page active" id="page-scanner">
+  <div class="search-card">
+    <div class="search-label">▸ Enter Stock Symbol</div>
+    <div class="search-row">
+      <input class="stock-input" id="symbolInput" type="text" placeholder="e.g. DIXON, HAL, BEL" maxlength="20"
+        onkeydown="if(event.key==='Enter') doScan()" />
+      <button class="scan-btn" id="scanBtn" onclick="doScan()">Scan →</button>
+    </div>
+    <div class="criteria-row">
+      <div class="pill"><div class="pill-dot"></div>52W High</div>
+      <div class="pill"><div class="pill-dot"></div>Volume ≥1.5x</div>
+      <div class="pill"><div class="pill-dot"></div>RSI 50–70</div>
+      <div class="pill"><div class="pill-dot"></div>Above SMA200</div>
+      <div class="pill"><div class="pill-dot"></div>Base Pattern</div>
+    </div>
+  </div>
+
+  <div id="scanResult"></div>
+</div>
+
+<!-- WATCHLIST PAGE -->
+<div class="page" id="page-watchlist">
+  <div class="page-title">Watchlist</div>
+  <div class="page-sub">Stocks you've saved for monitoring</div>
+  <div id="watchlistContent"></div>
+</div>
+
+<!-- HISTORY PAGE -->
+<div class="page" id="page-history">
+  <div class="page-title">Scan History</div>
+  <div class="page-sub">Your recent analyses</div>
+  <div id="historyContent"></div>
+</div>
+
+<!-- GUIDE PAGE -->
+<div class="page" id="page-guide">
+  <div class="page-title">Trading Guide</div>
+  <div class="page-sub">What to know before entering a breakout trade</div>
+
+  <div class="warning-box">
+    <strong>⚠ Read Before Trading</strong>
+    This app uses AI estimates, not live data. Always verify prices and volumes on NSE/TradingView before placing any order. This is not financial advice.
+  </div>
+
+  <div class="guide-section">
+    <div class="guide-section-title">Pre-Entry Checklist</div>
+
+    <div class="guide-item">
+      <div class="guide-num">1</div>
+      <div class="guide-body">
+        <strong>Check Nifty 500 Index Trend First</strong>
+        If the index is below its 50-day MA, even great setups fail. Only trade breakouts in a rising market. Check daily on TradingView (NSE:CNX500).
+      </div>
+    </div>
+    <div class="guide-item">
+      <div class="guide-num">2</div>
+      <div class="guide-body">
+        <strong>Sector Strength</strong>
+        A stock breaking out in a weak sector is a red flag. Confirm the sector index (e.g., Nifty Defence, Nifty IT) is also in an uptrend.
+      </div>
+    </div>
+    <div class="guide-item">
+      <div class="guide-num">3</div>
+      <div class="guide-body">
+        <strong>Delivery Volume on NSE</strong>
+        On NSE's Bhavcopy data, check delivery % for the breakout day. Above 50% = institutional buying. Below 30% = likely intraday noise — skip it.
+      </div>
+    </div>
+    <div class="guide-item">
+      <div class="guide-num">4</div>
+      <div class="guide-body">
+        <strong>News Catalyst</strong>
+        Breakouts with a reason (earnings beat, order win, budget allocation) hold much better. Check MoneyControl or Economic Times for any recent announcements.
+      </div>
+    </div>
+    <div class="guide-item">
+      <div class="guide-num">5</div>
+      <div class="guide-body">
+        <strong>Don't Chase — The 5% Rule</strong>
+        If a stock is already 5% or more above the breakout level when you spot it, skip it. The risk:reward has deteriorated.
+      </div>
+    </div>
+    <div class="guide-item">
+      <div class="guide-num">6</div>
+      <div class="guide-body">
+        <strong>Entry Timing — Avoid First 15 Minutes</strong>
+        Never enter at 9:15 AM open. Wait for opening volatility to settle. Best entry window: 9:45–11:00 AM or EOD for positional trades.
+      </div>
+    </div>
+    <div class="guide-item">
+      <div class="guide-num">7</div>
+      <div class="guide-body">
+        <strong>Position Sizing — The 1-2% Rule</strong>
+        Risk maximum 1–2% of your total capital on a single trade. Calculate: (Capital × 2%) ÷ (Entry − Stop Loss) = Number of shares.
+      </div>
+    </div>
+    <div class="guide-item">
+      <div class="guide-num">8</div>
+      <div class="guide-body">
+        <strong>Promoter &amp; FII Holding</strong>
+        Check quarterly holdings. High promoter holding (60%+) + rising FII % = strong conviction. Falling promoter holding is a warning sign.
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="guide-section">
+    <div class="guide-section-title">Breakout Failure Signs</div>
+    <div class="guide-item">
+      <div class="guide-num" style="background:var(--red-dim);color:var(--red)">✕</div>
+      <div class="guide-body"><strong>Price closes back below breakout level</strong>Exit immediately. This is a failed breakout / bull trap.</div>
+    </div>
+    <div class="guide-item">
+      <div class="guide-num" style="background:var(--red-dim);color:var(--red)">✕</div>
+      <div class="guide-body"><strong>Volume dries up after breakout day</strong>Breakout needs follow-through volume. If day 2 and 3 have below-avg volume, reduce position.</div>
+    </div>
+    <div class="guide-item">
+      <div class="guide-num" style="background:var(--red-dim);color:var(--red)">✕</div>
+      <div class="guide-body"><strong>Broad market selloff</strong>If Nifty 50 drops 1.5%+ on breakout day, wait. Macro pressure overrides individual stock setups.</div>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <strong>📊 Best Free Tools</strong>
+    Chartink.com — free EOD screener<br>
+    TradingView — charts &amp; alerts<br>
+    NSEIndia.com — delivery data &amp; 52W highs<br>
+    Screener.in — fundamentals check<br>
+    Trendlyne.com — SMA crossover scanner
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let watchlist = JSON.parse(localStorage.getItem('wl') || '[]');
+let history   = JSON.parse(localStorage.getItem('hist') || '[]');
+let currentResult = null;
+
+// ── TABS ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const tabs = ['scanner','watchlist','history','guide'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  if (tab === 'watchlist') renderWatchlist();
+  if (tab === 'history')   renderHistory();
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── SCAN ──
+async function doScan() {
+  const sym = document.getElementById('symbolInput').value.trim().toUpperCase();
+  if (!sym) return;
+
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  const out = document.getElementById('scanResult');
+  out.innerHTML = `
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <div class="loading-stock">${sym}</div>
+      <div class="loading-sub">Checking breakout conditions...</div>
+    </div>`;
+
+  const prompt = `You are an expert Indian stock market technical analyst specializing in Nifty 500 breakout trading.
+
+Analyze: ${sym} (NSE India) for a range breakout setup.
+
+Respond ONLY with valid JSON, no markdown, no text outside JSON:
+
+{
+  "symbol": "${sym}",
+  "fullName": "Full Company Name",
+  "sector": "Sector",
+  "verdict": "STRONG BREAKOUT" | "MODERATE BREAKOUT" | "WEAK SETUP" | "NO BREAKOUT",
+  "verdictClass": "strong" | "moderate" | "weak" | "none",
+  "score": 0-5,
+  "metrics": {
+    "price": "₹XXX",
+    "vsWeekHigh": "X% below 52W high OR At 52W high",
+    "volumeStatus": "X.Xx 20D avg",
+    "rsi": "XX",
+    "rsiStatus": "pass" | "fail" | "neutral",
+    "aboveSMA200": true | false,
+    "consolidationWeeks": "X-XX wks"
+  },
+  "analysis": "3-4 sentence technical analysis covering price action, volume, RSI, sector tailwinds, and any key risks.",
+  "preEntryChecks": [
+    { "label": "Market Trend (CNX500)", "status": "ok|warn|bad", "note": "brief note" },
+    { "label": "Sector Strength", "status": "ok|warn|bad", "note": "brief note" },
+    { "label": "Delivery Volume", "status": "ok|warn|bad", "note": "brief note" },
+    { "label": "News Catalyst", "status": "ok|warn|bad", "note": "brief note" },
+    { "label": "Liquidity (₹30Cr+ daily)", "status": "ok|warn|bad", "note": "brief note" }
+  ],
+  "entryZone": "₹XXX–XXX",
+  "stopLoss": "₹XXX",
+  "target1": "₹XXX",
+  "target2": "₹XXX",
+  "riskReward": "1:X.X",
+  "riskNote": "One key risk or caveat.",
+  "inNifty500": true | false
+}
+
+Use knowledge up to early 2026. Be realistic. If stock unknown, set inNifty500 false and explain in analysis.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    const raw = (data.content || []).map(i => i.text || '').join('');
+
+    let parsed = null;
+    try { parsed = JSON.parse(raw.trim()); } catch {
+      const m = raw.match(/\{[\s\S]*\}/);
+      if (m) try { parsed = JSON.parse(m[0]); } catch {}
+    }
+
+    if (!parsed) throw new Error('Parse failed');
+    currentResult = parsed;
+
+    // Save to history
+    const entry = { symbol: parsed.symbol, fullName: parsed.fullName, sector: parsed.sector,
+      verdict: parsed.verdict, verdictClass: parsed.verdictClass, riskReward: parsed.riskReward,
+      date: new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'2-digit' }) };
+    history = [entry, ...history.filter(h => h.symbol !== parsed.symbol)].slice(0, 30);
+    localStorage.setItem('hist', JSON.stringify(history));
+
+    renderResult(parsed, out);
+  } catch (e) {
+    out.innerHTML = `<div class="error-card">⚠ Analysis failed. Check your connection and try again.</div>`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Scan →';
+}
+
+function renderResult(d, container) {
+  const vc = d.verdictClass || 'none';
+  const scoreColor = d.score >= 4 ? '#00ff88' : d.score >= 3 ? '#ffb700' : '#ff4d6d';
+  const scoreW = Math.round((d.score / 5) * 100);
+
+  const checksHtml = (d.preEntryChecks || []).map(c => `
+    <div class="check-item">
+      <div class="check-icon ${c.status}">${c.status==='ok'?'✓':c.status==='warn'?'~':'✕'}</div>
+      <div class="check-text"><strong>${c.label}</strong>${c.note}</div>
+    </div>`).join('');
+
+  container.innerHTML = `
+    <div class="result-card">
+      <div class="result-header">
+        <div class="result-top">
+          <div class="result-symbol">${d.symbol}</div>
+          <div class="verdict v-${vc}">${d.verdict}</div>
+        </div>
+        <div class="result-company">${d.fullName} · ${d.sector}</div>
+      </div>
+
+      <div class="score-bar-wrap">
+        <div class="score-label">
+          <span>Breakout Score</span>
+          <span style="color:${scoreColor}">${d.score}/5 checks passed</span>
+        </div>
+        <div class="score-track">
+          <div class="score-fill" style="width:${scoreW}%;background:${scoreColor}"></div>
+        </div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">Est. Price</div>
+          <div class="metric-val">${d.metrics?.price||'—'}</div>
+          <div class="metric-sub ${d.metrics?.aboveSMA200?'pass':'fail'}">${d.metrics?.aboveSMA200?'▲ Above SMA200':'▼ Below SMA200'}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">vs 52W High</div>
+          <div class="metric-val sm">${d.metrics?.vsWeekHigh||'—'}</div>
+          <div class="metric-sub neutral">range position</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Volume</div>
+          <div class="metric-val sm">${d.metrics?.volumeStatus||'—'}</div>
+          <div class="metric-sub neutral">vs 20D avg</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">RSI (14)</div>
+          <div class="metric-val">${d.metrics?.rsi||'—'}</div>
+          <div class="metric-sub ${d.metrics?.rsiStatus==='pass'?'pass':d.metrics?.rsiStatus==='fail'?'fail':'neutral'}">${d.metrics?.rsiStatus==='pass'?'✓ In zone':d.metrics?.rsiStatus==='fail'?'✗ Out of zone':'~ Borderline'}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Base Duration</div>
+          <div class="metric-val sm">${d.metrics?.consolidationWeeks||'—'}</div>
+          <div class="metric-sub neutral">consolidation</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Risk:Reward</div>
+          <div class="metric-val">${d.riskReward||'—'}</div>
+          <div class="metric-sub neutral">ratio</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">▸ Technical Analysis</div>
+        <div class="analysis-text">${d.analysis}</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">▸ Pre-Entry Checklist</div>
+        <div class="checklist">${checksHtml}</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">▸ Trade Levels</div>
+        <div class="levels">
+          <div class="level-box entry"><div class="level-lbl">Entry Zone</div><div class="level-val">${d.entryZone}</div></div>
+          <div class="level-box stop"><div class="level-lbl">Stop Loss</div><div class="level-val">${d.stopLoss}</div></div>
+          <div class="level-box t1"><div class="level-lbl">Target 1</div><div class="level-val">${d.target1}</div></div>
+          <div class="level-box t2"><div class="level-lbl">Target 2</div><div class="level-val">${d.target2}</div></div>
+          <div class="level-box rr" style="grid-column:1/-1"><div class="level-lbl">Risk : Reward</div><div class="level-val">${d.riskReward}</div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="risk-box"><strong>⚠ Key Risk</strong>${d.riskNote}</div>
+      </div>
+
+      <div class="section" style="display:flex;gap:10px">
+        <button onclick="addToWatchlist()" style="flex:1;background:var(--green-dim);border:1px solid rgba(0,255,136,0.2);border-radius:10px;padding:13px;color:var(--green);font-family:var(--mono);font-size:12px;cursor:pointer;">＋ Watchlist</button>
+        <button onclick="shareResult()" style="flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:10px;padding:13px;color:var(--muted);font-family:var(--mono);font-size:12px;cursor:pointer;">↑ Share</button>
+      </div>
+    </div>`;
+}
+
+function addToWatchlist() {
+  if (!currentResult) return;
+  const d = currentResult;
+  const exists = watchlist.find(w => w.symbol === d.symbol);
+  if (exists) { toast('Already in watchlist'); return; }
+  watchlist.unshift({ symbol: d.symbol, fullName: d.fullName, sector: d.sector,
+    verdict: d.verdict, verdictClass: d.verdictClass, riskReward: d.riskReward,
+    addedDate: new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short' }) });
+  localStorage.setItem('wl', JSON.stringify(watchlist));
+  toast('Added to watchlist ✓');
+}
+
+function removeFromWatchlist(symbol) {
+  watchlist = watchlist.filter(w => w.symbol !== symbol);
+  localStorage.setItem('wl', JSON.stringify(watchlist));
+  renderWatchlist();
+  toast('Removed');
+}
+
+function rescanFromWatchlist(symbol) {
+  switchTab('scanner');
+  document.getElementById('symbolInput').value = symbol;
+  doScan();
+}
+
+function shareResult() {
+  if (!currentResult) return;
+  const d = currentResult;
+  const text = `📊 ${d.symbol} – ${d.verdict}\nEntry: ${d.entryZone} | SL: ${d.stopLoss}\nT1: ${d.target1} | T2: ${d.target2}\nR:R ${d.riskReward}\n\nvia Nifty Breakout Analyzer`;
+  if (navigator.share) {
+    navigator.share({ title: `${d.symbol} Breakout Analysis`, text });
+  } else {
+    navigator.clipboard?.writeText(text);
+    toast('Copied to clipboard ✓');
+  }
+}
+
+function renderWatchlist() {
+  const el = document.getElementById('watchlistContent');
+  if (!watchlist.length) {
+    el.innerHTML = `<div class="wl-empty">No stocks saved yet.<br>Scan a stock and tap<br><strong style="color:var(--green)">＋ Watchlist</strong> to add it.</div>`;
+    return;
+  }
+  el.innerHTML = watchlist.map(w => `
+    <div class="wl-item">
+      <div class="wl-left">
+        <div class="wl-symbol">${w.symbol}</div>
+        <div class="wl-meta">${w.sector} · Added ${w.addedDate}</div>
+        <div style="margin-top:6px"><span class="verdict v-${w.verdictClass||'none'}" style="font-size:9px;padding:4px 10px">${w.verdict}</span></div>
+      </div>
+      <div class="wl-right">
+        <button class="wl-rescan" onclick="rescanFromWatchlist('${w.symbol}')">Re-scan →</button>
+        <button class="wl-delete" onclick="removeFromWatchlist('${w.symbol}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderHistory() {
+  const el = document.getElementById('historyContent');
+  if (!history.length) {
+    el.innerHTML = `<div class="wl-empty">No scans yet.<br>Analyze a stock to see history here.</div>`;
+    return;
+  }
+  el.innerHTML = history.map(h => `
+    <div class="history-item" onclick="rescanFromWatchlist('${h.symbol}')">
+      <div class="h-left">
+        <div class="h-symbol">${h.symbol}</div>
+        <div class="h-date">${h.fullName||h.sector} · ${h.date}</div>
+      </div>
+      <div class="h-right">
+        <span class="verdict v-${h.verdictClass||'none'}" style="font-size:9px;padding:4px 10px">${h.verdict}</span>
+        <div class="h-rr">${h.riskReward||''}</div>
+      </div>
+    </div>`).join('');
+  el.innerHTML += `<button class="clear-btn" onclick="clearHistory()">Clear History</button>`;
+}
+
+function clearHistory() {
+  history = [];
+  localStorage.setItem('hist', '[]');
+  renderHistory();
+  toast('History cleared');
+}
+
+// ── SERVICE WORKER ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ── INSTALL PROMPT ──
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show install toast after 3s
+  setTimeout(() => toast('Tap menu → Add to Home Screen to install'), 3000);
+});
+</script>
+</body>
+</html>
