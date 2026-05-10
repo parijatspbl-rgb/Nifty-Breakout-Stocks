@@ -1,64 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#00ff88" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Breakout" />
-  <meta name="description" content="AI-powered Nifty 500 range breakout scanner" />
-  <title>Nifty Breakout Analyzer</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-    :root {
-      --green: #00ff88;
-      --green-dim: rgba(0,255,136,0.12);
-      --red: #ff4d6d;
-      --red-dim: rgba(255,77,109,0.12);
-      --amber: #ffb700;
-      --amber-dim: rgba(255,183,0,0.1);
-      --blue: #00b4ff;
-      --blue-dim: rgba(0,180,255,0.1);
-      --bg: #0a0a0f;
-      --bg2: #111118;
-      --bg3: #0d0d14;
-      --border: #1c1c2e;
-      --border2: #252538;
-      --text: #e8e8f0;
-      --muted: #6b6b80;
-      --dim: #333345;
-      --mono: 'Space Mono', monospace;
-      --display: 'Syne', sans-serif;
-      --safe-top: env(safe-area-inset-top, 0px);
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-    }
-
-    html { background: var(--bg); }
-
-    body {
-      font-family: var(--mono);
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      min-height: 100dvh;
-      overflow-x: hidden;
-    }
-
-    /* ── NAV BAR ── */
-    .navbar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(10,10,15,0.92);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: calc(var(--safe-top) + 12px) 20px 12px;
+const resp = await fetch('/api/analyze', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ symbol: sym, prompt: prompt })
+});
+const data = await resp.json();
+const raw = data.text || '';      padding: calc(var(--safe-top) + 12px) 20px 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
